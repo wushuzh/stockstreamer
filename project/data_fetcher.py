@@ -2,6 +2,7 @@ import abc
 from urllib.request import urlopen
 import json
 import time
+from retrying import retry
 
 
 class StockFetcher(metaclass=abc.ABCMeta):
@@ -77,8 +78,10 @@ class IEXStockFetcher(StockFetcher):
             print("failed to get image, retrying {0} secs".format(retries))
             time.sleep(retries)
             retries += 1
-            return self.fetchImageURL(stock, retries)
+            self.fetchImageURL(stock, retries)
 
+    @retry(wait_random_min=1000, wait_random_max=2000,
+           stop_max_attempt_number=5)
     def fetchStockHighLow(self, stock):
         # get the image url of a single stock
         try:
@@ -88,11 +91,12 @@ class IEXStockFetcher(StockFetcher):
             resp = json.loads(resp.readlines()[0].decode('utf8'))
             return (resp['week52High'], resp['week52Low'])
         except:
-            return self.fetchStockHighLow(stock)
+            print("wait 1-2 secs then retries get highlow")
+        raise ConnectionError
 
 
 if __name__ == '__main__':
     f = IEXStockFetcher([])
     #print(f.fetchPrice('AAPL'))
-    print(f.fetchImageURL('AAPL'))
+    #print(f.fetchImageURL('AAPL'))
     print(f.fetchStockHighLow('AAPL'))

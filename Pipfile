@@ -10,6 +10,7 @@ name = "pypi"
 bokeh = "*"
 pandas = "*"
 "psycopg2" = "*"
+retrying = "*"
 
 
 [dev-packages]
