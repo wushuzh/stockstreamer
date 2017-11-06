@@ -1,6 +1,7 @@
 import abc
 from urllib.request import urlopen
 import json
+import time
 
 
 class StockFetcher(metaclass=abc.ABCMeta):
@@ -47,14 +48,20 @@ class IEXStockFetcher(StockFetcher):
 
     def fetchPrice(self, stock):
         # get the price of a single stock
-        try:
-            resp = urlopen("{}{}{}".format(IEXStockFetcher.url_prefix,
-                                           stock,
-                                           IEXStockFetcher.url_suffix_price))
-            price = float(resp.readlines()[0])
-            return price
-        except:
-            return self.fetchPrice(stock)
+        price_url = "{}{}{}".format(IEXStockFetcher.url_prefix,
+                                    stock,
+                                    IEXStockFetcher.url_suffix_price)
+        delay = 1
+        for i in range(1, 6):
+            try:
+                resp = urlopen(price_url)
+                price = float(resp.readlines()[0])
+                return price
+            except:
+                print("failed to get price, retrying {0} secs".format(delay))
+                time.sleep(delay)
+                delay *= i
+        raise ConnectionError
 
     def fetchImageURL(self, stock):
         # get the image url of a single stock
