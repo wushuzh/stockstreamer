@@ -63,8 +63,10 @@ class IEXStockFetcher(StockFetcher):
                 delay *= i
         raise ConnectionError
 
-    def fetchImageURL(self, stock):
+    def fetchImageURL(self, stock, retries=1):
         # get the image url of a single stock
+        if retries > 5:
+            raise ConnectionError
         try:
             resp = urlopen("{}{}{}".format(IEXStockFetcher.url_prefix,
                                            stock,
@@ -72,7 +74,10 @@ class IEXStockFetcher(StockFetcher):
             resp = json.loads(resp.readlines()[0].decode('utf8'))
             return resp['url']
         except:
-            return self.fetchImageURL(stock)
+            print("failed to get image, retrying {0} secs".format(retries))
+            time.sleep(retries)
+            retries += 1
+            return self.fetchImageURL(stock, retries)
 
     def fetchStockHighLow(self, stock):
         # get the image url of a single stock
@@ -88,6 +93,6 @@ class IEXStockFetcher(StockFetcher):
 
 if __name__ == '__main__':
     f = IEXStockFetcher([])
-    print(f.fetchPrice('AAPL'))
+    #print(f.fetchPrice('AAPL'))
     print(f.fetchImageURL('AAPL'))
     print(f.fetchStockHighLow('AAPL'))
