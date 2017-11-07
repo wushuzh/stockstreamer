@@ -1,4 +1,5 @@
 CREATE DATABASE stocks;
+\connect stocks;
 -- stock_price: contains records of stock prices with timestamps
 CREATE TABLE stock_prices (
     stock_name varchar(6),

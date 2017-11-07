@@ -6,6 +6,7 @@ import datetime
 from retrying import retry
 from threading import Thread
 from functools import partial
+import psycopg2
 
 
 class StockFetcher(metaclass=abc.ABCMeta):
@@ -143,12 +144,58 @@ class IEXStockFetcher(StockFetcher):
         raise ConnectionError
 
 
+class StockManager(metaclass=abc.ABCMeta):
+    """
+    Base class for fetching stock info
+    """
+    def __init__(self, conn, stock_fetcher):
+        self.conn = conn
+        self.stock_fetcher = stock_fetcher
+
+    @abc.abstractmethod
+    def insertStock(self, table, timestamp, stock, price):
+        """
+        records a timestamped stock value
+        """
+        return NotImplemented
+
+    def fetchInsertStockLoop(self, sleeptime=1):
+        """
+        main loop for fetching and inserting stocks
+        """
+        while True:
+            stock_updates = self.stock_fetcher.fetchAllPrices()
+            for stock, price in stock_updates['prices'].items():
+                self.insertStock("stock_prices",
+                                 stock_updates['timestamp'], stock, price)
+            time.sleep(sleeptime)
+
+
+class PostgreSQLStockManager(StockManager):
+    """
+    Records fetched stock data in a postgreSQL table
+    """
+    def __init__(self, conn, stock_fetcher):
+        super().__init__(conn, stock_fetcher)
+
+    def insertStock(self, table, timestamp, stock, price):
+        cur = self.conn.cursor()
+        query = """
+        INSERT INTO {} (time, stock_name, price) VALUES (
+        \'{}\',
+        \'{}\',
+        {});
+        """.format(table, timestamp, stock, price)
+        cur.execute(query)
+        self.conn.commit()
+
+
 if __name__ == '__main__':
-    f = IEXStockFetcher(['AAPL', 'GOOGL'])
-    print(f.fetchAllPrices())
-    print(f.fetchAllImages())
-    print(f.fetchAllHighLow())
-    # print(f.fetchPrice('AAPL'))
-    # print(f.fetchImageURL('AAPL'))
-    # print(f.fetchStockHighLow('AAPL'))
+    stocks_to_fetch = ['GOOGL', 'AMZN', 'FB', 'AAPL', 'BABA']
+    stock_fetcher = IEXStockFetcher(stocks_to_fetch)
+    dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
+    conn = psycopg2.connect(dburl)
+    manager = PostgreSQLStockManager(conn, stock_fetcher)
+
+    manager.fetchInsertStockLoop(5)
 
