@@ -2,7 +2,10 @@ import abc
 from urllib.request import urlopen
 import json
 import time
+import datetime
 from retrying import retry
+from threading import Thread
+from functools import partial
 
 
 class StockFetcher(metaclass=abc.ABCMeta):
@@ -47,6 +50,23 @@ class IEXStockFetcher(StockFetcher):
     def __init__(self, stocks):
         super().__init__(stocks)
 
+    def fetchAllPrices(self):
+        stock_data = {}
+        stock_data['timestamp'] = datetime.datetime.now()
+        prices = {}
+        threads = []
+        for stock in self.stocks:
+            t = Thread(target=partial(self.fetchPriceInto, stock, prices))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        stock_data['prices'] = prices
+        return stock_data
+
+    def fetchPriceInto(self, stock, results=None):
+        results[stock] = self.fetchPrice(stock)
+
     def fetchPrice(self, stock):
         # get the price of a single stock
         price_url = "{}{}{}".format(IEXStockFetcher.url_prefix,
@@ -64,6 +84,20 @@ class IEXStockFetcher(StockFetcher):
                 delay *= i
         raise ConnectionError
 
+    def fetchAllImages(self):
+        urls = {}
+        threads = []
+        for stock in self.stocks:
+            t = Thread(target=partial(self.fetchImageInto, stock, urls))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        return urls
+
+    def fetchImageInto(self, stock, results=None):
+        results[stock] = self.fetchImageURL(stock)
+
     def fetchImageURL(self, stock, retries=1):
         # get the image url of a single stock
         if retries > 5:
@@ -79,6 +113,20 @@ class IEXStockFetcher(StockFetcher):
             time.sleep(retries)
             retries += 1
             self.fetchImageURL(stock, retries)
+
+    def fetchAllHighLow(self):
+        highlow = {}
+        threads = []
+        for stock in self.stocks:
+            t = Thread(target=partial(self.fetchHighLowInto, stock, highlow))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        return highlow
+
+    def fetchHighLowInto(self, stock, results=None):
+        results[stock] = self.fetchStockHighLow(stock)
 
     @retry(wait_random_min=1000, wait_random_max=2000,
            stop_max_attempt_number=5)
@@ -96,7 +144,11 @@ class IEXStockFetcher(StockFetcher):
 
 
 if __name__ == '__main__':
-    f = IEXStockFetcher([])
-    #print(f.fetchPrice('AAPL'))
-    #print(f.fetchImageURL('AAPL'))
-    print(f.fetchStockHighLow('AAPL'))
+    f = IEXStockFetcher(['AAPL', 'GOOGL'])
+    print(f.fetchAllPrices())
+    print(f.fetchAllImages())
+    print(f.fetchAllHighLow())
+    # print(f.fetchPrice('AAPL'))
+    # print(f.fetchImageURL('AAPL'))
+    # print(f.fetchStockHighLow('AAPL'))
+
