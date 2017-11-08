@@ -159,6 +159,13 @@ class StockManager(metaclass=abc.ABCMeta):
         """
         return NotImplemented
 
+    @abc.abstractclassmethod
+    def updateStockURL(self, table, stock, url):
+        """
+        updates the table containing stock logo URLs
+        """
+        return NotImplemented
+
     def fetchInsertStockLoop(self, sleeptime=1):
         """
         main loop for fetching and inserting stocks
@@ -168,6 +175,16 @@ class StockManager(metaclass=abc.ABCMeta):
             for stock, price in stock_updates['prices'].items():
                 self.insertStock("stock_prices",
                                  stock_updates['timestamp'], stock, price)
+            time.sleep(sleeptime)
+
+    def fetchUpdateImageURLLoop(self, sleeptime=1):
+        """
+        main loop for fetching and updating logo URLs
+        """
+        while True:
+            image_updates = self.stock_fetcher.fetchAllImages()
+            for stock, url in image_updates.items():
+                self.updateStockURL("stock_image_urls", stock, url)
             time.sleep(sleeptime)
 
 
@@ -189,6 +206,21 @@ class PostgreSQLStockManager(StockManager):
         cur.execute(query)
         self.conn.commit()
 
+    def updateStockURL(self, table, stock, url):
+        cur = self.conn.cursor()
+        delete_query = """
+        DELETE FROM {}
+        WHERE stock_name = \'{}\';
+        """.format(table, stock)
+        query = """
+        INSERT INTO {} (stock_name, image_url) VALUES(
+        \'{}\',
+        \'{}\');
+        """.format(table, stock, url)
+        cur.execute(delete_query)
+        cur.execute(query)
+        self.conn.commit()
+
 
 if __name__ == '__main__':
     stocks_to_fetch = ['GOOGL', 'AMZN', 'FB', 'AAPL', 'BABA']
@@ -197,5 +229,13 @@ if __name__ == '__main__':
     conn = psycopg2.connect(dburl)
     manager = PostgreSQLStockManager(conn, stock_fetcher)
 
-    manager.fetchInsertStockLoop(5)
+    stock_price_thread = Thread(
+        target=partial(manager.fetchInsertStockLoop, 5))
+    image_url_thread = Thread(
+        target=partial(manager.fetchUpdateImageURLLoop, 10))
 
+    stock_price_thread.start()
+    image_url_thread.start()
+
+    stock_price_thread.join()
+    image_url_thread.join()
