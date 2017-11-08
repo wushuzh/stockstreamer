@@ -166,6 +166,13 @@ class StockManager(metaclass=abc.ABCMeta):
         """
         return NotImplemented
 
+    @abc.abstractclassmethod
+    def updateStockHighLow(self, table, stock, high_price, low_price):
+        """
+        update the 52-week high/low stock values
+        """
+        return NotImplemented
+
     def fetchInsertStockLoop(self, sleeptime=1):
         """
         main loop for fetching and inserting stocks
@@ -185,6 +192,16 @@ class StockManager(metaclass=abc.ABCMeta):
             image_updates = self.stock_fetcher.fetchAllImages()
             for stock, url in image_updates.items():
                 self.updateStockURL("stock_image_urls", stock, url)
+            time.sleep(sleeptime)
+
+    def fetchUpdateHighLowLoop(self, sleeptime=1):
+        """
+        main loop for fetching and updating 52-week high/low values
+        """
+        while True:
+            high_low = self.stock_fetcher.fetchAllHighLow()
+            for stock, (high, low) in high_low.items():
+                self.updateStockHighLow("stock_highlow", stock, high, low)
             time.sleep(sleeptime)
 
 
@@ -221,6 +238,22 @@ class PostgreSQLStockManager(StockManager):
         cur.execute(query)
         self.conn.commit()
 
+    def updateStockHighLow(self, table, stock, high_price, low_price):
+        cur = self.conn.cursor()
+        delete_query = """
+        DELETE FROM {}
+        WHERE stock_name = \'{}\';
+        """.format(table, stock)
+        query = """
+        INSERT INTO {} (stock_name, high_val52wk, low_val52wk) VALUES(
+        \'{}\',
+        \'{}\',
+        \'{}\');
+        """.format(table, stock, high_price, low_price)
+        cur.execute(delete_query)
+        cur.execute(query)
+        self.conn.commit()
+
 
 if __name__ == '__main__':
     stocks_to_fetch = ['GOOGL', 'AMZN', 'FB', 'AAPL', 'BABA']
@@ -233,9 +266,13 @@ if __name__ == '__main__':
         target=partial(manager.fetchInsertStockLoop, 5))
     image_url_thread = Thread(
         target=partial(manager.fetchUpdateImageURLLoop, 10))
+    high_low_thread = Thread(
+        target=partial(manager.fetchUpdateHighLowLoop, 10))
 
     stock_price_thread.start()
     image_url_thread.start()
+    high_low_thread.start()
 
     stock_price_thread.join()
     image_url_thread.join()
+    high_low_thread.join()
