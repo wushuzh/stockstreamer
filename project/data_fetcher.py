@@ -265,9 +265,9 @@ if __name__ == '__main__':
     stock_price_thread = Thread(
         target=partial(manager.fetchInsertStockLoop, 5))
     image_url_thread = Thread(
-        target=partial(manager.fetchUpdateImageURLLoop, 10))
+        target=partial(manager.fetchUpdateImageURLLoop, 5000))
     high_low_thread = Thread(
-        target=partial(manager.fetchUpdateHighLowLoop, 10))
+        target=partial(manager.fetchUpdateHighLowLoop, 5000))
 
     stock_price_thread.start()
     image_url_thread.start()
