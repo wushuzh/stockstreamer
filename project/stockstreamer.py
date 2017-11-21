@@ -83,3 +83,17 @@ p.x_range.end = np.max(xs[0])
 
 curdoc().add_root(p)
 
+
+def update_figure():
+    xs, ys, max_ys, unique_names = get_data()
+    for i, (x, y, max_y, name) in enumerate(zip(xs, ys, max_ys, unique_names)):
+        lines[i].data_source.data.update(
+            x=x,
+            y=y,
+            stock_name=[name_mapper[name]] * len(x),
+            timestamp=[a.strftime('%Y-%m-%d %H-%M-%S') for a in x])
+
+
+update_figure()
+curdoc().add_periodic_callback(update_figure, 5000)
+
