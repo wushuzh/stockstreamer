@@ -3,7 +3,8 @@ from bokeh.models import (
     DatetimeTickFormatter,
     Legend,
     NumeralTickFormatter,
-    Range1d
+    Range1d,
+    Title
 )
 from bokeh.models.sources import ColumnDataSource
 from bokeh.palettes import Dark2
@@ -128,6 +129,27 @@ for i, (x, y, max_y, name) in enumerate(zip(xs, ys, max_ys, unique_names)):
 time_range = xs[0].max() - xs[0].min()
 p.x_range.start = np.min(xs[0]) - time_range * 0.1
 p.x_range.end = np.max(xs[0])
+
+# Add the stock logos to the plot
+N = len(unique_names)
+source = ColumnDataSource(dict(
+    url=[image_urls.loc[name, 'image_url'] for name in unique_names],
+    x1=[i.min() for i in xs],
+    y1=max_ys,
+    w1=[32] * N,
+    h1=[32] * N,
+))
+image_plot = p.image_url(url='url', x='x1', y='y1', w='w1', h='h1',
+                         source=source,
+                         anchor="center", global_alpha=0.7,
+                         w_units='screen', h_units='screen')
+
+# Add an annotation
+info_label = Title(text='*Bounding boxes indicate 52-week high/low',
+                   align='left',
+                   text_font_size='10pt', text_font='times',
+                   text_font_style='italic', offset=25)
+p.add_layout(info_label, 'below')
 
 # Create a legend
 legend = Legend(
