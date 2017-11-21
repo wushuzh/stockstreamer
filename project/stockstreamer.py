@@ -65,6 +65,7 @@ def get_data():
 
 xs, ys, max_ys, unique_names = get_data()
 lines = []
+recs = []
 
 name_mapper = dict(AAPL='Apple', AMZN='Amazon', BABA='Alibaba',
                    FB='Facebook', GOOGL='Google')
@@ -97,6 +98,26 @@ for i, (x, y, max_y, name) in enumerate(zip(xs, ys, max_ys, unique_names)):
         line_width=2,
         source=source))
 
+    # The `hbar` parameters are scalars instead of lists,
+    # but we create a ColumnDataSource so they can be easily modified later
+    hbar_source = ColumnDataSource(dict(
+        y=[(stock_highlow.loc[name, 'high_val52wk']
+            + stock_highlow.loc[name, 'low_val52wk']
+            ) / 2],
+        left=[0],
+        right=[x.max()],
+        height=[[(stock_highlow.loc[name, 'high_val52wk']
+                  - stock_highlow.loc[name, 'low_val52wk'])]],
+        fill_alpha=[0.1],
+        fill_color=[line_colors[i]],
+        line_color=[line_colors[i]]))
+
+    recs.append(p.hbar(y='y', left='left', right='right', height='height',
+                       fill_alpha='fill_alpha', fill_color='fill_color',
+                       line_alpha=0.1, line_color='line_color',
+                       line_dash='solid', line_width=0.1,
+                       source=hbar_source))
+
 
 # Adjust the x view based upon the range of the data
 time_range = xs[0].max() - xs[0].min()
@@ -114,6 +135,7 @@ def update_figure():
             y=y,
             stock_name=[name_mapper[name]] * len(x),
             timestamp=[a.strftime('%Y-%m-%d %H-%M-%S') for a in x])
+        recs[i].data_source.data.update(left=[0], right=[x.max()])
 
 
 update_figure()
