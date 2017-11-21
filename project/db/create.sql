@@ -16,3 +16,23 @@ CREATE TABLE stock_highlow(
     stock_name varchar(6),
     high_val52wk decimal,
     low_val52wk decimal);
+
+-- generate a few records with upwarding timestamp
+CREATE OR REPLACE FUNCTION add_records() RETURNS VOID AS $$
+  BEGIN
+    SET TIMEZONE='Asia/Shanghai';
+    INSERT INTO stock_prices
+      SELECT distinct on (stock_name)
+        stock_name,
+        price + round(random()*100+1) as price,
+        now() + '10 second'::interval
+      FROM stock_prices;
+  END;
+$$ LANGUAGE plpgsql;
+
+/*
+DO $$ BEGIN
+    PERFORM add_records();
+END $$;
+*/
+
