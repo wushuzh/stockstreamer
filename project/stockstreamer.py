@@ -1,5 +1,10 @@
 from bokeh.plotting import figure, curdoc
-from bokeh.models import Range1d, NumeralTickFormatter, DatetimeTickFormatter
+from bokeh.models import (
+    DatetimeTickFormatter,
+    Legend,
+    NumeralTickFormatter,
+    Range1d
+)
 from bokeh.models.sources import ColumnDataSource
 from bokeh.palettes import Dark2
 from bokeh.models.tools import (
@@ -124,6 +129,12 @@ time_range = xs[0].max() - xs[0].min()
 p.x_range.start = np.min(xs[0]) - time_range * 0.1
 p.x_range.end = np.max(xs[0])
 
+# Create a legend
+legend = Legend(
+    items=[(stock, [l]) for stock, l in zip(unique_names, lines)],
+    location=(0, 0), orientation='horizontal'
+)
+p.add_layout(legend, 'below')
 curdoc().add_root(p)
 
 
