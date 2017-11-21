@@ -1,16 +1,29 @@
 from bokeh.plotting import figure, curdoc
-from bokeh.models import Range1d
+from bokeh.models import Range1d, NumeralTickFormatter, DatetimeTickFormatter
 from bokeh.models.sources import ColumnDataSource
 from bokeh.palettes import Dark2
+from bokeh.models.tools import (
+    BoxZoomTool,
+    HoverTool,
+    PanTool,
+    ResetTool,
+    WheelZoomTool
+)
 
 import psycopg2
 import pandas as pd
 import numpy as np
 
 
+hover = HoverTool(tooltips=[('Stock Name', '@stock_name'),
+                            ('Time', '@timestamp'),
+                            ('Price', '@y')])
+tools = [PanTool(), BoxZoomTool(), ResetTool(), WheelZoomTool(), hover]
+
 p = figure(title="STOCKSTREAMER v0.0",
            plot_width=1000, plot_height=680,
            x_range=Range1d(0, 1), y_range=Range1d(-50, 1200),
+           tools=tools,
            toolbar_location='below', toolbar_sticky=False)
 
 dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
@@ -55,6 +68,15 @@ lines = []
 
 name_mapper = dict(AAPL='Apple', AMZN='Amazon', BABA='Alibaba',
                    FB='Facebook', GOOGL='Google')
+
+# set axis labels and other figure properties
+p.yaxis.axis_label = "Price ($US)"
+p.yaxis.axis_label_text_font_size = '12pt'
+p.yaxis[0].formatter = NumeralTickFormatter(format="$0")
+p.xaxis[0].formatter = DatetimeTickFormatter()
+p.background_fill_color = "#F0F0F0"
+p.title.text_font = "times"
+p.title.text_font_size = "16pt"
 
 line_colors = Dark2[6]
 line_dashes = ['solid'] * 6
