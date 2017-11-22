@@ -22,11 +22,11 @@ CREATE OR REPLACE FUNCTION add_records() RETURNS VOID AS $$
   BEGIN
     SET TIMEZONE='Asia/Shanghai';
     INSERT INTO stock_prices
-      SELECT distinct on (stock_name)
+      SELECT 
         stock_name,
-        price + round(random()*100+1) as price,
-        now() + '10 second'::interval
-      FROM stock_prices;
+        max(price) + round(random()*100+1) as price,
+        max(time) + '1 second'::interval
+      FROM stock_prices group by stock_name;
   END;
 $$ LANGUAGE plpgsql;
 

@@ -1,0 +1,41 @@
+version: "3.2"
+
+services:
+
+    stock-db:
+        container_name: stock-db
+        # build: ./project/db
+        image: stock-db
+        #ports:
+        #    - 5435:5432 # expose ports - HOST:CONTAINER
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        healthcheck:
+            test: "pg_isready -U postgres"
+
+    fetch-service:
+        container_name: fetch-service
+        image: bokeh-service
+        environment:
+            - DATABASE_URL=postgres://postgres:postgres@stock-db:5432/stocks
+            - HTTPS_PROXY=ip:port
+        depends_on:
+            - stock-db
+        command: ["./wait-for-it.sh", "stock-db:5432", "-t", "90", "--", "python", "data_fetcher.py"]
+        links:
+            - stock-db
+
+    chart-service:
+        container_name: chart-service
+        image: bokeh-service
+        ports:
+            - 5006:5006 # expose ports - HOST:CONTAINER
+        environment:
+            - DATABASE_URL=postgres://postgres:postgres@stock-db:5432/stocks
+        depends_on:
+            - fetch-service
+        command: ["./wait-for-it.sh", "stock-db:5432", "-t", "90", "--", "bokeh", "serve", "stockstreamer.py", "--allow-websocket-origin=192.168.99.100:5006"]
+        links:
+            - stock-db
+

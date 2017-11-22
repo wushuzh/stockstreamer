@@ -20,6 +20,7 @@ import psycopg2
 import pandas as pd
 import numpy as np
 import os
+import time
 
 
 hover = HoverTool(tooltips=[('Stock Name', '@stock_name'),
@@ -36,6 +37,17 @@ p = figure(title="STOCKSTREAMER v0.0",
 # dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
 dburl = os.environ.get("DATABASE_URL")
 conn = psycopg2.connect(dburl)
+
+while True:
+    exist_df = pd.read_sql("""
+    SELECT * FROM stock_prices
+    WHERE time >= NOW() - '7 day'::INTERVAL
+    """, conn)
+    if exist_df.size <= 10:
+        time.sleep(10)
+    else:
+        print("Ready to serve data in chart")
+        break
 
 image_urls = pd.read_sql("""
     SELECT * FROM stock_image_urls;
