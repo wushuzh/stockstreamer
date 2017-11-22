@@ -19,6 +19,7 @@ from bokeh.models.tools import (
 import psycopg2
 import pandas as pd
 import numpy as np
+import os
 
 
 hover = HoverTool(tooltips=[('Stock Name', '@stock_name'),
@@ -32,7 +33,8 @@ p = figure(title="STOCKSTREAMER v0.0",
            tools=tools,
            toolbar_location='below', toolbar_sticky=False)
 
-dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
+# dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
+dburl = os.environ.get("DATABASE_URL")
 conn = psycopg2.connect(dburl)
 
 image_urls = pd.read_sql("""

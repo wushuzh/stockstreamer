@@ -7,6 +7,7 @@ from retrying import retry
 from threading import Thread
 from functools import partial
 import psycopg2
+import os
 
 
 class StockFetcher(metaclass=abc.ABCMeta):
@@ -258,7 +259,8 @@ class PostgreSQLStockManager(StockManager):
 if __name__ == '__main__':
     stocks_to_fetch = ['GOOGL', 'AMZN', 'FB', 'AAPL', 'BABA']
     stock_fetcher = IEXStockFetcher(stocks_to_fetch)
-    dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
+    # dburl = "postgres://postgres:postgres@192.168.99.100:5432/stocks"
+    dburl = os.environ.get("DATABASE_URL")
     conn = psycopg2.connect(dburl)
     manager = PostgreSQLStockManager(conn, stock_fetcher)
 
